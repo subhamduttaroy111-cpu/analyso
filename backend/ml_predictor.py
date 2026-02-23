@@ -13,14 +13,10 @@ import json
 # Add parent directory to path to allow importing from ml_training
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from ml_training.utils import (
-    extract_intraday_features,
-    extract_swing_features,
-    extract_longterm_features
-)
+from ml_training.utils import extract_intraday_features
 
 from config_models import (
-    INTRADAY_MODEL_PATH, SWING_MODEL_PATH, LONGTERM_MODEL_PATH,
+    INTRADAY_MODEL_PATH,
     LABEL_MAP, DEFAULT_MODEL
 )
 
@@ -36,33 +32,20 @@ class MLPredictor:
         self._load_models()
     
     def _load_models(self):
-        """Load trained models and metadata from disk"""
+        """Load only the Intraday model for production (Vercel size limit)"""
         try:
-            # Load Intraday
+            # Load only Intraday model for Vercel deployment (others available locally)
             if os.path.exists(INTRADAY_MODEL_PATH):
                 self.models['INTRADAY'] = joblib.load(INTRADAY_MODEL_PATH)
                 self._load_metadata('INTRADAY', INTRADAY_MODEL_PATH)
-                print("✅ Intraday model loaded")
-            
-            # Load Swing
-            if os.path.exists(SWING_MODEL_PATH):
-                self.models['SWING'] = joblib.load(SWING_MODEL_PATH)
-                self._load_metadata('SWING', SWING_MODEL_PATH)
-                print("✅ Swing model loaded")
-            
-            # Load Longterm
-            if os.path.exists(LONGTERM_MODEL_PATH):
-                self.models['LONGTERM'] = joblib.load(LONGTERM_MODEL_PATH)
-                self._load_metadata('LONGTERM', LONGTERM_MODEL_PATH)
-                print("✅ Longterm model loaded")
-            
-            self.models_loaded = len(self.models) > 0
-            
-            if not self.models_loaded:
-                print("⚠️  Models not found. Please train models first using pipeline.")
+                print("✅ Intraday model loaded (production mode)")
+                self.models_loaded = True
+            else:
+                print("⚠️  Intraday model not found")
+                self.models_loaded = False
         
         except Exception as e:
-            print(f"❌ Error loading models: {e}")
+            print(f"❌ Error loading model: {e}")
             self.models_loaded = False
             
     def _load_metadata(self, timeframe, model_path):
@@ -82,39 +65,36 @@ class MLPredictor:
     
     def predict(self, df, model_type='ensemble', strategy_mode='INTRADAY'):
         """
-        Make prediction using ML models
+        Make prediction using ML models (Intraday only in production)
         
         Args:
             df: DataFrame with technical indicators
-            model_type: Unused (kept for compatibility), effectively uses 'ensemble' (RandomForest/XGBoost inside the loaded object)
-            strategy_mode: 'INTRADAY', 'SWING', or 'LONGTERM'
+            model_type: Unused (kept for compatibility)
+            strategy_mode: Requested mode (falls back to INTRADAY if not available)
         
         Returns:
             dict with prediction, confidence, and model info
         """
-        if not self.models_loaded or strategy_mode not in self.models:
+        if not self.models_loaded:
+            return {
+                'available': False,
+                'error': 'No models loaded'
+            }
+        
+        # Fallback to INTRADAY if requested model not available (production mode)
+        if strategy_mode not in self.models:
+            strategy_mode = 'INTRADAY'
+        
+        if strategy_mode not in self.models:
             return {
                 'available': False,
                 'error': f'Model {strategy_mode} not available'
             }
         
         try:
-            # 1. Extract Features based on timeframe
+            # 1. Extract Features (use Intraday for all modes in production)
             current_idx = len(df) - 1
-            if strategy_mode == 'INTRADAY':
-                features_dict = extract_intraday_features(df, current_idx)
-            elif strategy_mode == 'SWING':
-                # Swing needs daily data context, but for now we might only have hourly passed in df?
-                # The strategies.py passes 'df'.
-                # For simplified integration, we'll try to extract features from available df.
-                # If df is hourly, we need 1d. If strategies.py only passes one DF, we might miss context.
-                # Warning: extract_swing_features expects (df_1h, df_1d).
-                # strategies.py's swing_logic receives just `df`.
-                # We will pass `df` as both for now, or need to fix strategies.py to pass more data.
-                # For safety/fallback:
-                 features_dict = extract_swing_features(df, None, current_idx)
-            else: # LONGTERM
-                 features_dict = extract_longterm_features(df, None, current_idx)
+            features_dict = extract_intraday_features(df, current_idx)
 
             if not features_dict:
                  return {'available': False, 'error': 'Feature extraction failed'}
