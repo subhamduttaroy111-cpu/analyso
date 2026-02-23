@@ -1,46 +1,46 @@
 {
     "version": 2,
     "name": "analyso",
-    "routes": [
+    "rewrites": [
         {
-            "src": "/scan",
-            "dest": "/api/index.py"
+            "source": "/scan",
+            "destination": "/api/index.py"
         },
         {
-            "src": "/get_stock_details",
-            "dest": "/api/index.py"
+            "source": "/get_stock_details",
+            "destination": "/api/index.py"
         },
         {
-            "src": "/get_news",
-            "dest": "/api/index.py"
+            "source": "/get_news",
+            "destination": "/api/index.py"
         },
         {
-            "src": "/login",
-            "dest": "/frontend/login.html"
+            "source": "/login",
+            "destination": "/frontend/login.html"
         },
         {
-            "src": "/login.html",
-            "dest": "/frontend/login.html"
+            "source": "/login.html",
+            "destination": "/frontend/login.html"
         },
         {
-            "src": "/css/(.*)",
-            "dest": "/frontend/css/$1"
+            "source": "/css/(.*)",
+            "destination": "/frontend/css/$1"
         },
         {
-            "src": "/js/(.*)",
-            "dest": "/frontend/js/$1"
+            "source": "/js/(.*)",
+            "destination": "/frontend/js/$1"
         },
         {
-            "src": "/robots.txt",
-            "dest": "/frontend/robots.txt"
+            "source": "/robots.txt",
+            "destination": "/frontend/robots.txt"
         },
         {
-            "src": "/sitemap.xml",
-            "dest": "/frontend/sitemap.xml"
+            "source": "/sitemap.xml",
+            "destination": "/frontend/sitemap.xml"
         },
         {
-            "src": "/(.*)",
-            "dest": "/frontend/index.html"
+            "source": "/(.*)",
+            "destination": "/frontend/index.html"
         }
     ],
     "headers": [
