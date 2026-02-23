@@ -11,9 +11,11 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from sklearn.preprocessing import MinMaxScaler
-from keras.models import load_model
 
 from config_models import LSTM_MODEL_PATH, SEQUENCE_SCALER_PATH, LABEL_MAP
+
+# Lazy-load Keras only if model exists and needed
+keras = None
 
 
 class EnhancedLSTMPredictor:
@@ -30,17 +32,32 @@ class EnhancedLSTMPredictor:
     def _load_model(self):
         """Load trained LSTM model"""
         try:
-            if os.path.exists(LSTM_MODEL_PATH):
-                self.model = load_model(LSTM_MODEL_PATH)
-                self.model_loaded = True
-                print("✅ Enhanced LSTM model loaded")
-                
-                # Create scaler
-                self.scaler = MinMaxScaler(feature_range=(0, 1))
-            else:
-                print("⚠️  Enhanced LSTM model not found. Train using lstm_trainer_enhanced.py")
+            if not os.path.exists(LSTM_MODEL_PATH):
+                print("⚠️  Enhanced LSTM model not found. Skipping initialization.")
+                self.model_loaded = False
+                return
+            
+            # Lazy-load Keras only when model exists
+            global keras
+            if keras is None:
+                try:
+                    from keras.models import load_model
+                except ImportError:
+                    try:
+                        from tensorflow.keras.models import load_model
+                    except ImportError:
+                        print("⚠️  Keras/TensorFlow not installed. LSTM unavailable.")
+                        self.model_loaded = False
+                        return
+            
+            self.model = load_model(LSTM_MODEL_PATH)
+            self.model_loaded = True
+            print("✅ Enhanced LSTM model loaded")
+            
+            # Create scaler
+            self.scaler = MinMaxScaler(feature_range=(0, 1))
         except Exception as e:
-            print(f"❌ Error loading Enhanced LSTM model: {e}")
+            print(f"⚠️  Enhanced LSTM initialization skipped: {e}")
             self.model_loaded = False
     
     def prepare_sequence(self, df):

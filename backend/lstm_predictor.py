@@ -7,15 +7,15 @@ import numpy as np
 import pandas as pd
 import joblib
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress TF warnings
-
-import tensorflow as tf
-from tensorflow import keras
 
 from config_models import (
     LSTM_MODEL_PATH, SEQUENCE_SCALER_PATH,
     LSTM_PARAMS, LABEL_MAP
 )
+
+# Lazy-load TensorFlow only if model file exists and needed
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress TF warnings
+keras = None
 
 
 class LSTMPredictor:
@@ -31,15 +31,28 @@ class LSTMPredictor:
     def _load_model(self):
         """Load trained LSTM model"""
         try:
-            if os.path.exists(LSTM_MODEL_PATH) and os.path.exists(SEQUENCE_SCALER_PATH):
-                self.model = keras.models.load_model(LSTM_MODEL_PATH)
+            if not os.path.exists(LSTM_MODEL_PATH):
+                print("⚠️  LSTM model not found. Skipping LSTM initialization.")
+                self.model_loaded = False
+                return
+            
+            # Lazy-load TensorFlow only when model exists
+            global keras
+            if keras is None:
+                try:
+                    from tensorflow import keras
+                except ImportError:
+                    print("⚠️  TensorFlow not installed. LSTM unavailable (using ML models only).")
+                    self.model_loaded = False
+                    return
+            
+            self.model = keras.models.load_model(LSTM_MODEL_PATH)
+            if os.path.exists(SEQUENCE_SCALER_PATH):
                 self.scaler = joblib.load(SEQUENCE_SCALER_PATH)
-                self.model_loaded = True
-                print("✅ LSTM model loaded")
-            else:
-                print("⚠️  LSTM model not found. Train using lstm_trainer.py")
+            self.model_loaded = True
+            print("✅ LSTM model loaded")
         except Exception as e:
-            print(f"❌ Error loading LSTM model: {e}")
+            print(f"⚠️  LSTM initialization skipped: {e}")
             self.model_loaded = False
     
     def prepare_sequence(self, df, sequence_length=None):
