@@ -1,0 +1,44 @@
+# ── Python ──────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+.Python
+.venv/
+venv/
+env/
+
+# ── Data / Models (too large for git) ───────────────
+data/
+models/
+ml traiing for indian stocks/
+*.pkl
+*.joblib
+*.h5
+*.keras
+*.csv
+
+# ── NLTK Cache ───────────────────────────────────────
+nltk_data/
+
+# ── OS Junk ──────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ──────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Environment ──────────────────────────────────────
+.env
+.env.local
+.env*.local
+
+# ── Vercel ───────────────────────────────────────────
+.vercel/
+
+# ── Logs ─────────────────────────────────────────────
+*.log
